@@ -25,14 +25,34 @@ int main() {
 	int errno;
 	char buf[64];
 	
-	int fifo = open(SERVER_FIFO, O_WRONLY);
+	int fifo = open(SERVER_FIFO, O_RDWR);
 	if ( fifo < 0 ) {
 		perror("Unable to open named pipe");
 		exit(-1);
 	}
 
 	signal(SIGINT, handle);
-
+	bool fun = false; 
+	int reader; 
+	int count = 0; 
+	while ( !fun && count < 3 ) {
+		reader = read(fifo, &buf, 1);
+		if (reader < 0) {
+			perror("ERROR: can't read from pipe");
+			exit(EXIT_FAILURE);
+		} else if (reader == 0) {
+			printf("End of file");
+			fun = true; 
+		} else if ('\a' == buf[0] ) {
+			fun = true; 
+		} else if ('\0' == buf[0] ) {
+			printf("\n");
+			printf("Received: %s\n", buf); 
+			count++;
+		} else {
+			printf("%c", buf[0]);
+		}
+	}
 	while ( !done ) {
 		result = fgets((char*)&buf, 64, stdin);
 		if ( result != NULL ) {
